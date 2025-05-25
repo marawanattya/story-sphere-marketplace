@@ -142,10 +142,7 @@ const Index = () => {
   };
 
   const handleViewDetails = (book: Book) => {
-    toast({
-      title: book.title,
-      description: `By ${book.author} - ${book.description.slice(0, 100)}...`,
-    });
+    window.location.href = `/book/${book.id}`;
   };
 
   const handleCategoryClick = (category: string) => {

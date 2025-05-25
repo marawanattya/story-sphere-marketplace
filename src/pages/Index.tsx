@@ -7,6 +7,18 @@ import ShoppingCart, { CartItem } from '@/components/ShoppingCart';
 import AuthModal from '@/components/AuthModal';
 import { mockBooks, mockCategories, mockUsers } from '@/data/mockData';
 
+// Order interface
+interface Order {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  items: CartItem[];
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt: string;
+}
+
 const Index = () => {
   const { toast } = useToast();
   
@@ -20,6 +32,48 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [books, setBooks] = useState<Book[]>(mockBooks);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [categories, setCategories] = useState<string[]>(mockCategories);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>([
+    {
+      id: '001',
+      customerId: '1',
+      customerName: 'John Doe',
+      customerEmail: 'john@example.com',
+      items: [
+        { book: mockBooks[0], quantity: 1 },
+        { book: mockBooks[1], quantity: 1 }
+      ],
+      total: 45.98,
+      status: 'delivered',
+      createdAt: '2024-01-15T10:30:00Z'
+    },
+    {
+      id: '002',
+      customerId: '2',
+      customerName: 'Jane Smith',
+      customerEmail: 'jane@example.com',
+      items: [
+        { book: mockBooks[2], quantity: 1 }
+      ],
+      total: 24.99,
+      status: 'processing',
+      createdAt: '2024-01-16T14:20:00Z'
+    },
+    {
+      id: '003',
+      customerId: '3',
+      customerName: 'Bob Johnson',
+      customerEmail: 'bob@example.com',
+      items: [
+        { book: mockBooks[3], quantity: 2 }
+      ],
+      total: 59.98,
+      status: 'pending',
+      createdAt: '2024-01-17T09:15:00Z'
+    }
+  ]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Filter books based on search and category
   const filteredBooks = books.filter(book => {
@@ -232,6 +286,81 @@ const Index = () => {
     });
   };
 
+  // Category management handlers
+  const handleAddCategory = (categoryName: string) => {
+    if (categories.includes(categoryName)) {
+      toast({
+        title: "Category already exists",
+        description: "This category already exists in the system",
+        variant: "destructive"
+      });
+      return;
+    }
+    setCategories(prev => [...prev, categoryName]);
+    toast({
+      title: "Category added",
+      description: `${categoryName} has been added to categories`,
+    });
+  };
+
+  const handleEditCategory = (oldName: string, newName: string) => {
+    if (categories.includes(newName) && newName !== oldName) {
+      toast({
+        title: "Category already exists",
+        description: "This category name already exists",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setCategories(prev => prev.map(cat => cat === oldName ? newName : cat));
+    setBooks(prevBooks => 
+      prevBooks.map(book => 
+        book.category === oldName ? { ...book, category: newName } : book
+      )
+    );
+    setEditingCategory(null);
+    toast({
+      title: "Category updated",
+      description: `Category has been renamed to ${newName}`,
+    });
+  };
+
+  const handleDeleteCategory = (categoryName: string) => {
+    const booksInCategory = books.filter(book => book.category === categoryName);
+    if (booksInCategory.length > 0) {
+      toast({
+        title: "Cannot delete category",
+        description: `This category contains ${booksInCategory.length} books. Please reassign or delete the books first.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setCategories(prev => prev.filter(cat => cat !== categoryName));
+    toast({
+      title: "Category deleted",
+      description: `${categoryName} has been removed from categories`,
+    });
+  };
+
+  // Order management handlers
+  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
+    setOrders(prev => 
+      prev.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+    toast({
+      title: "Order status updated",
+      description: `Order #${orderId} status updated to ${newStatus}`,
+    });
+  };
+
+  const handleViewOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+  };
+
   // Render different views
   const renderCurrentView = () => {
     switch (currentView) {
@@ -239,7 +368,7 @@ const Index = () => {
         return (
           <HomePage
             featuredBooks={featuredBooks}
-            categories={mockCategories}
+            categories={categories}
             onAddToCart={handleAddToCart}
             onViewDetails={handleViewDetails}
             onCategoryClick={handleCategoryClick}
@@ -400,7 +529,7 @@ const Index = () => {
                           required
                           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
                         >
-                          {mockCategories.map(category => (
+                          {categories.map(category => (
                             <option key={category} value={category}>{category}</option>
                           ))}
                         </select>
@@ -585,7 +714,7 @@ const Index = () => {
                         required
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
                       >
-                        {mockCategories.map(category => (
+                        {categories.map(category => (
                           <option key={category} value={category}>{category}</option>
                         ))}
                       </select>
@@ -640,20 +769,93 @@ const Index = () => {
                 </button>
               </div>
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold mb-4">Current Categories</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {mockCategories.map(category => (
-                    <div key={category} className="p-3 bg-amber-50 rounded-lg border">
-                      <span className="text-sm font-medium text-amber-800">{category}</span>
-                    </div>
-                  ))}
+              <div className="space-y-6">
+                {/* Add New Category Form */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const categoryName = formData.get('categoryName') as string;
+                    if (categoryName.trim()) {
+                      handleAddCategory(categoryName.trim());
+                      e.currentTarget.reset();
+                    }
+                  }} className="flex gap-4">
+                    <input
+                      type="text"
+                      name="categoryName"
+                      placeholder="Enter category name"
+                      required
+                      className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-amber-600 text-white px-6 py-2 rounded-md hover:bg-amber-700 transition-colors"
+                    >
+                      Add Category
+                    </button>
+                  </form>
                 </div>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    Category management functionality would be implemented here. 
-                    In a real application, you would be able to add, edit, and delete categories.
-                  </p>
+
+                {/* Current Categories */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4">Current Categories</h3>
+                  <div className="space-y-3">
+                    {categories.map(category => (
+                      <div key={category} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border">
+                        {editingCategory === category ? (
+                          <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const newName = formData.get('newCategoryName') as string;
+                            if (newName.trim()) {
+                              handleEditCategory(category, newName.trim());
+                            }
+                          }} className="flex gap-2 flex-1">
+                            <input
+                              type="text"
+                              name="newCategoryName"
+                              defaultValue={category}
+                              required
+                              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                            />
+                            <button
+                              type="submit"
+                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCategory(null)}
+                              className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            <span className="text-sm font-medium text-amber-800">{category}</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setEditingCategory(category)}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(category)}
+                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -663,7 +865,7 @@ const Index = () => {
       case 'view-orders':
         return (
           <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-6xl mx-auto px-4">
+            <div className="max-w-7xl mx-auto px-4">
               <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-3xl font-bold text-gray-800">Order Management</h1>
                 <button
@@ -674,48 +876,130 @@ const Index = () => {
                 </button>
               </div>
               
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-200">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-200 px-4 py-2 text-left">Order ID</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">Customer</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">Items</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">Total</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-gray-200 px-4 py-2">#001</td>
-                        <td className="border border-gray-200 px-4 py-2">John Doe</td>
-                        <td className="border border-gray-200 px-4 py-2">2 books</td>
-                        <td className="border border-gray-200 px-4 py-2">$45.98</td>
-                        <td className="border border-gray-200 px-4 py-2">
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Completed</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="border border-gray-200 px-4 py-2">#002</td>
-                        <td className="border border-gray-200 px-4 py-2">Jane Smith</td>
-                        <td className="border border-gray-200 px-4 py-2">1 book</td>
-                        <td className="border border-gray-200 px-4 py-2">$24.99</td>
-                        <td className="border border-gray-200 px-4 py-2">
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">Processing</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+              {selectedOrder ? (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">Order Details - #{selectedOrder.id}</h3>
+                    <button
+                      onClick={() => setSelectedOrder(null)}
+                      className="text-amber-600 hover:text-amber-700 underline"
+                    >
+                      ← Back to Orders List
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <h4 className="font-semibold mb-2">Customer Information</h4>
+                      <p><strong>Name:</strong> {selectedOrder.customerName}</p>
+                      <p><strong>Email:</strong> {selectedOrder.customerEmail}</p>
+                      <p><strong>Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Order Status</h4>
+                      <select
+                        value={selectedOrder.status}
+                        onChange={(e) => handleUpdateOrderStatus(selectedOrder.id, e.target.value as Order['status'])}
+                        className="border border-gray-300 rounded px-3 py-1"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-3">Order Items</h4>
+                    <div className="space-y-3">
+                      {selectedOrder.items.map((item, index) => (
+                        <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
+                          <img 
+                            src={item.book.cover} 
+                            alt={item.book.title}
+                            className="w-12 h-16 object-cover rounded"
+                          />
+                          <div className="flex-1">
+                            <h5 className="font-medium">{item.book.title}</h5>
+                            <p className="text-sm text-gray-600">by {item.book.author}</p>
+                          </div>
+                          <div className="text-right">
+                            <p><strong>Qty:</strong> {item.quantity}</p>
+                            <p><strong>Price:</strong> ${item.book.price}</p>
+                            <p><strong>Subtotal:</strong> ${(item.book.price * item.quantity).toFixed(2)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-right">
+                      <p className="text-xl font-bold">Total: ${selectedOrder.total.toFixed(2)}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    This is mock order data. In a real application, orders would be fetched from a database 
-                    and you could update order statuses, view order details, and manage customer information.
-                  </p>
+              ) : (
+                <div className="bg-white rounded-lg shadow">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-200">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="border border-gray-200 px-4 py-2 text-left">Order ID</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Customer</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Items</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Total</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Status</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Date</th>
+                            <th className="border border-gray-200 px-4 py-2 text-left">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orders.map((order) => (
+                            <tr key={order.id} className="hover:bg-gray-50">
+                              <td className="border border-gray-200 px-4 py-2">#{order.id}</td>
+                              <td className="border border-gray-200 px-4 py-2">{order.customerName}</td>
+                              <td className="border border-gray-200 px-4 py-2">{order.items.length} items</td>
+                              <td className="border border-gray-200 px-4 py-2">${order.total.toFixed(2)}</td>
+                              <td className="border border-gray-200 px-4 py-2">
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value as Order['status'])}
+                                  className={`px-2 py-1 rounded-full text-xs border-0 ${
+                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                    order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                    order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'pending' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="processing">Processing</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered">Delivered</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                              </td>
+                              <td className="border border-gray-200 px-4 py-2">
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="border border-gray-200 px-4 py-2">
+                                <button
+                                  onClick={() => handleViewOrderDetails(order)}
+                                  className="bg-amber-600 text-white px-3 py-1 rounded text-sm hover:bg-amber-700"
+                                >
+                                  View Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         );
@@ -743,7 +1027,7 @@ const Index = () => {
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-xl font-semibold mb-4">Categories</h3>
-                  <p className="text-3xl font-bold text-amber-600">{mockCategories.length}</p>
+                  <p className="text-3xl font-bold text-amber-600">{categories.length}</p>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-xl font-semibold mb-4">Total Users</h3>

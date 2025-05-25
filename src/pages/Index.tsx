@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -12,7 +11,7 @@ const Index = () => {
   const { toast } = useToast();
   
   // State management
-  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'admin' | 'add-book' | 'manage-categories' | 'view-orders'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'admin' | 'add-book' | 'manage-categories' | 'view-orders' | 'edit-books'>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -20,6 +19,7 @@ const Index = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [books, setBooks] = useState<Book[]>(mockBooks);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
 
   // Filter books based on search and category
   const filteredBooks = books.filter(book => {
@@ -185,6 +185,14 @@ const Index = () => {
     });
   };
 
+  const handleEditBooks = () => {
+    setCurrentView('edit-books');
+    toast({
+      title: "Edit Books",
+      description: "Opening book editing interface...",
+    });
+  };
+
   const handleAddBook = (newBook: Omit<Book, 'id'>) => {
     const book: Book = {
       ...newBook,
@@ -196,6 +204,35 @@ const Index = () => {
       description: `${book.title} has been added to the catalog`,
     });
     setCurrentView('admin');
+  };
+
+  const handleEditBook = (bookId: string) => {
+    const book = books.find(b => b.id === bookId);
+    if (book) {
+      setEditingBook(book);
+    }
+  };
+
+  const handleUpdateBook = (updatedBook: Book) => {
+    setBooks(prevBooks => 
+      prevBooks.map(book => 
+        book.id === updatedBook.id ? updatedBook : book
+      )
+    );
+    setEditingBook(null);
+    toast({
+      title: "Book updated successfully!",
+      description: `${updatedBook.title} has been updated`,
+    });
+  };
+
+  const handleDeleteBook = (bookId: string) => {
+    const book = books.find(b => b.id === bookId);
+    setBooks(prevBooks => prevBooks.filter(book => book.id !== bookId));
+    toast({
+      title: "Book deleted",
+      description: `${book?.title} has been removed from the catalog`,
+    });
   };
 
   // Render different views
@@ -279,6 +316,195 @@ const Index = () => {
                   onLoginPrompt={() => setShowAuthModal(true)}
                 />
               </div>
+            </div>
+          </div>
+        );
+
+      case 'edit-books':
+        return (
+          <div className="min-h-screen bg-gray-50 py-8">
+            <div className="max-w-6xl mx-auto px-4">
+              <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Edit Books</h1>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="text-amber-600 hover:text-amber-700 underline"
+                >
+                  ← Back to Admin Panel
+                </button>
+              </div>
+              
+              {editingBook ? (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4">Editing: {editingBook.title}</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const updatedBook: Book = {
+                      ...editingBook,
+                      title: formData.get('title') as string,
+                      author: formData.get('author') as string,
+                      price: parseFloat(formData.get('price') as string),
+                      category: formData.get('category') as string,
+                      cover: formData.get('cover') as string || editingBook.cover,
+                      description: formData.get('description') as string,
+                    };
+                    handleUpdateBook(updatedBook);
+                  }} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                          Book Title
+                        </label>
+                        <input
+                          type="text"
+                          id="title"
+                          name="title"
+                          defaultValue={editingBook.title}
+                          required
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
+                          Author
+                        </label>
+                        <input
+                          type="text"
+                          id="author"
+                          name="author"
+                          defaultValue={editingBook.author}
+                          required
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                          Price ($)
+                        </label>
+                        <input
+                          type="number"
+                          id="price"
+                          name="price"
+                          step="0.01"
+                          defaultValue={editingBook.price}
+                          required
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                          Category
+                        </label>
+                        <select
+                          id="category"
+                          name="category"
+                          defaultValue={editingBook.category}
+                          required
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                        >
+                          {mockCategories.map(category => (
+                            <option key={category} value={category}>{category}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="cover" className="block text-sm font-medium text-gray-700 mb-2">
+                        Cover Image URL
+                      </label>
+                      <input
+                        type="url"
+                        id="cover"
+                        name="cover"
+                        defaultValue={editingBook.cover}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        rows={4}
+                        defaultValue={editingBook.description}
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <button
+                        type="submit"
+                        className="bg-amber-600 text-white py-2 px-4 rounded-md hover:bg-amber-700 transition-colors"
+                      >
+                        Update Book
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingBook(null)}
+                        className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Book Catalog Management</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-3">Cover</th>
+                            <th className="text-left p-3">Title</th>
+                            <th className="text-left p-3">Author</th>
+                            <th className="text-left p-3">Category</th>
+                            <th className="text-left p-3">Price</th>
+                            <th className="text-left p-3">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {books.map((book) => (
+                            <tr key={book.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3">
+                                <img 
+                                  src={book.cover} 
+                                  alt={book.title}
+                                  className="w-12 h-16 object-cover rounded"
+                                />
+                              </td>
+                              <td className="p-3 font-medium">{book.title}</td>
+                              <td className="p-3">{book.author}</td>
+                              <td className="p-3">{book.category}</td>
+                              <td className="p-3">${book.price}</td>
+                              <td className="p-3">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleEditBook(book.id)}
+                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteBook(book.id)}
+                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -530,22 +756,28 @@ const Index = () => {
               
               <div className="mt-8 bg-white rounded-lg shadow p-6">
                 <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <button 
                     onClick={handleAddNewBook}
-                    className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 mr-4"
+                    className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition-colors"
                   >
                     Add New Book
                   </button>
                   <button 
+                    onClick={handleEditBooks}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Edit Books
+                  </button>
+                  <button 
                     onClick={handleManageCategories}
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-4"
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
                   >
                     Manage Categories
                   </button>
                   <button 
                     onClick={handleViewOrders}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
                   >
                     View Orders
                   </button>
@@ -605,7 +837,7 @@ const Index = () => {
               <button
                 onClick={() => setCurrentView('admin')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  ['admin', 'add-book', 'manage-categories', 'view-orders'].includes(currentView)
+                  ['admin', 'add-book', 'manage-categories', 'view-orders', 'edit-books'].includes(currentView)
                     ? 'border-amber-600 text-amber-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}

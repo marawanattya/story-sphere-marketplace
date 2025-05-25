@@ -12,7 +12,7 @@ const Index = () => {
   const { toast } = useToast();
   
   // State management
-  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'admin' | 'add-book' | 'manage-categories' | 'view-orders'>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -160,6 +160,44 @@ const Index = () => {
     }
   };
 
+  // Admin handlers
+  const handleAddNewBook = () => {
+    setCurrentView('add-book');
+    toast({
+      title: "Add New Book",
+      description: "Opening add book form...",
+    });
+  };
+
+  const handleManageCategories = () => {
+    setCurrentView('manage-categories');
+    toast({
+      title: "Manage Categories",
+      description: "Opening category management...",
+    });
+  };
+
+  const handleViewOrders = () => {
+    setCurrentView('view-orders');
+    toast({
+      title: "View Orders",
+      description: "Opening order management...",
+    });
+  };
+
+  const handleAddBook = (newBook: Omit<Book, 'id'>) => {
+    const book: Book = {
+      ...newBook,
+      id: String(books.length + 1)
+    };
+    setBooks(prevBooks => [...prevBooks, book]);
+    toast({
+      title: "Book added successfully!",
+      description: `${book.title} has been added to the catalog`,
+    });
+    setCurrentView('admin');
+  };
+
   // Render different views
   const renderCurrentView = () => {
     switch (currentView) {
@@ -244,6 +282,220 @@ const Index = () => {
             </div>
           </div>
         );
+
+      case 'add-book':
+        return (
+          <div className="min-h-screen bg-gray-50 py-8">
+            <div className="max-w-4xl mx-auto px-4">
+              <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Add New Book</h1>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="text-amber-600 hover:text-amber-700 underline"
+                >
+                  ← Back to Admin Panel
+                </button>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow p-6">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const newBook = {
+                    title: formData.get('title') as string,
+                    author: formData.get('author') as string,
+                    price: parseFloat(formData.get('price') as string),
+                    category: formData.get('category') as string,
+                    cover: formData.get('cover') as string || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop',
+                    description: formData.get('description') as string,
+                    rating: 4.0,
+                    inStock: true
+                  };
+                  handleAddBook(newBook);
+                  e.currentTarget.reset();
+                }} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Book Title
+                      </label>
+                      <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
+                        Author
+                      </label>
+                      <input
+                        type="text"
+                        id="author"
+                        name="author"
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                        Price ($)
+                      </label>
+                      <input
+                        type="number"
+                        id="price"
+                        name="price"
+                        step="0.01"
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                        Category
+                      </label>
+                      <select
+                        id="category"
+                        name="category"
+                        required
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                      >
+                        {mockCategories.map(category => (
+                          <option key={category} value={category}>{category}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="cover" className="block text-sm font-medium text-gray-700 mb-2">
+                      Cover Image URL (optional)
+                    </label>
+                    <input
+                      type="url"
+                      id="cover"
+                      name="cover"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      rows={4}
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-amber-600 text-white py-2 px-4 rounded-md hover:bg-amber-700 transition-colors"
+                  >
+                    Add Book
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'manage-categories':
+        return (
+          <div className="min-h-screen bg-gray-50 py-8">
+            <div className="max-w-4xl mx-auto px-4">
+              <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Manage Categories</h1>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="text-amber-600 hover:text-amber-700 underline"
+                >
+                  ← Back to Admin Panel
+                </button>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold mb-4">Current Categories</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {mockCategories.map(category => (
+                    <div key={category} className="p-3 bg-amber-50 rounded-lg border">
+                      <span className="text-sm font-medium text-amber-800">{category}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-blue-800 text-sm">
+                    Category management functionality would be implemented here. 
+                    In a real application, you would be able to add, edit, and delete categories.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'view-orders':
+        return (
+          <div className="min-h-screen bg-gray-50 py-8">
+            <div className="max-w-6xl mx-auto px-4">
+              <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-bold text-gray-800">Order Management</h1>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="text-amber-600 hover:text-amber-700 underline"
+                >
+                  ← Back to Admin Panel
+                </button>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 px-4 py-2 text-left">Order ID</th>
+                        <th className="border border-gray-200 px-4 py-2 text-left">Customer</th>
+                        <th className="border border-gray-200 px-4 py-2 text-left">Items</th>
+                        <th className="border border-gray-200 px-4 py-2 text-left">Total</th>
+                        <th className="border border-gray-200 px-4 py-2 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border border-gray-200 px-4 py-2">#001</td>
+                        <td className="border border-gray-200 px-4 py-2">John Doe</td>
+                        <td className="border border-gray-200 px-4 py-2">2 books</td>
+                        <td className="border border-gray-200 px-4 py-2">$45.98</td>
+                        <td className="border border-gray-200 px-4 py-2">
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Completed</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="border border-gray-200 px-4 py-2">#002</td>
+                        <td className="border border-gray-200 px-4 py-2">Jane Smith</td>
+                        <td className="border border-gray-200 px-4 py-2">1 book</td>
+                        <td className="border border-gray-200 px-4 py-2">$24.99</td>
+                        <td className="border border-gray-200 px-4 py-2">
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">Processing</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-blue-800 text-sm">
+                    This is mock order data. In a real application, orders would be fetched from a database 
+                    and you could update order statuses, view order details, and manage customer information.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
         
       case 'admin':
         if (!currentUser || currentUser.role !== 'admin') {
@@ -279,13 +531,22 @@ const Index = () => {
               <div className="mt-8 bg-white rounded-lg shadow p-6">
                 <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  <button className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 mr-4">
+                  <button 
+                    onClick={handleAddNewBook}
+                    className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 mr-4"
+                  >
                     Add New Book
                   </button>
-                  <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-4">
+                  <button 
+                    onClick={handleManageCategories}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-4"
+                  >
                     Manage Categories
                   </button>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  <button 
+                    onClick={handleViewOrders}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
                     View Orders
                   </button>
                 </div>
@@ -344,7 +605,7 @@ const Index = () => {
               <button
                 onClick={() => setCurrentView('admin')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  currentView === 'admin'
+                  ['admin', 'add-book', 'manage-categories', 'view-orders'].includes(currentView)
                     ? 'border-amber-600 text-amber-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}

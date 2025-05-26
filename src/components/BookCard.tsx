@@ -15,6 +15,7 @@ export interface Book {
   description: string;
   rating: number;
   inStock: boolean;
+  availableQuantity: number;
 }
 
 interface BookCardProps {
@@ -28,11 +29,11 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
 
   const handleQuantityChange = (value: string) => {
     const numValue = parseInt(value) || 1;
-    setQuantity(Math.max(1, numValue));
+    setQuantity(Math.max(1, Math.min(numValue, book.availableQuantity)));
   };
 
   const incrementQuantity = () => {
-    setQuantity(prev => prev + 1);
+    setQuantity(prev => Math.min(prev + 1, book.availableQuantity));
   };
 
   const decrementQuantity = () => {
@@ -71,6 +72,16 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
             <span className="text-sm text-gray-600 ml-1">{book.rating}</span>
           </div>
         </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-600">
+            Available: <span className="font-medium text-gray-800">{book.availableQuantity} copies</span>
+          </span>
+          {book.availableQuantity <= 5 && book.availableQuantity > 0 && (
+            <Badge variant="outline" className="text-orange-600 border-orange-600">
+              Low Stock
+            </Badge>
+          )}
+        </div>
         <p className="text-gray-600 text-sm line-clamp-3">{book.description}</p>
       </CardContent>
       
@@ -83,7 +94,7 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
           View Details
         </Button>
         
-        {book.inStock && (
+        {book.inStock && book.availableQuantity > 0 && (
           <div className="flex items-center space-x-2 w-full">
             <div className="flex items-center border rounded-md">
               <Button
@@ -100,6 +111,7 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
                 onChange={(e) => handleQuantityChange(e.target.value)}
                 className="w-16 h-8 text-center border-0 px-2"
                 min="1"
+                max={book.availableQuantity}
               />
               <Button
                 variant="ghost"
@@ -119,7 +131,7 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
           </div>
         )}
         
-        {!book.inStock && (
+        {(!book.inStock || book.availableQuantity === 0) && (
           <Button
             disabled
             className="w-full bg-gray-400 text-white cursor-not-allowed"

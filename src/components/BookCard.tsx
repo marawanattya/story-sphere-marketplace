@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 export interface Book {
   id: string;
@@ -18,11 +19,26 @@ export interface Book {
 
 interface BookCardProps {
   book: Book;
-  onAddToCart: (book: Book) => void;
+  onAddToCart: (book: Book, quantity: number) => void;
   onViewDetails: (book: Book) => void;
 }
 
 const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
+  const [quantity, setQuantity] = useState(1);
+
+  const handleQuantityChange = (value: string) => {
+    const numValue = parseInt(value) || 1;
+    setQuantity(Math.max(1, numValue));
+  };
+
+  const incrementQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decrementQuantity = () => {
+    setQuantity(prev => Math.max(1, prev - 1));
+  };
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200">
       <div className="relative overflow-hidden">
@@ -66,13 +82,51 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
         >
           View Details
         </Button>
-        <Button
-          onClick={() => onAddToCart(book)}
-          disabled={!book.inStock}
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-        >
-          {book.inStock ? 'Add to Cart' : 'Out of Stock'}
-        </Button>
+        
+        {book.inStock && (
+          <div className="flex items-center space-x-2 w-full">
+            <div className="flex items-center border rounded-md">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={decrementQuantity}
+                className="h-8 w-8 p-0"
+              >
+                -
+              </Button>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => handleQuantityChange(e.target.value)}
+                className="w-16 h-8 text-center border-0 px-2"
+                min="1"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={incrementQuantity}
+                className="h-8 w-8 p-0"
+              >
+                +
+              </Button>
+            </div>
+            <Button
+              onClick={() => onAddToCart(book, quantity)}
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Add to Cart
+            </Button>
+          </div>
+        )}
+        
+        {!book.inStock && (
+          <Button
+            disabled
+            className="w-full bg-gray-400 text-white cursor-not-allowed"
+          >
+            Out of Stock
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

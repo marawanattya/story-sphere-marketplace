@@ -80,9 +80,8 @@ const ShoppingCart = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdateQuantity(item.book.id, Math.min(item.quantity + 1, item.book.availableQuantity))}
+                onClick={() => onUpdateQuantity(item.book.id, item.quantity + 1)}
                 className="h-8 w-8 p-0"
-                disabled={item.quantity >= item.book.availableQuantity}
               >
                 +
               </Button>

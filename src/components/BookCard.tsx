@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 
 export interface Book {
   id: string;
@@ -15,31 +14,15 @@ export interface Book {
   description: string;
   rating: number;
   inStock: boolean;
-  availableQuantity: number;
 }
 
 interface BookCardProps {
   book: Book;
-  onAddToCart: (book: Book, quantity: number) => void;
+  onAddToCart: (book: Book) => void;
   onViewDetails: (book: Book) => void;
 }
 
 const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
-  const [quantity, setQuantity] = useState(1);
-
-  const handleQuantityChange = (value: string) => {
-    const numValue = parseInt(value) || 1;
-    setQuantity(Math.max(1, Math.min(numValue, book.availableQuantity)));
-  };
-
-  const incrementQuantity = () => {
-    setQuantity(prev => Math.min(prev + 1, book.availableQuantity));
-  };
-
-  const decrementQuantity = () => {
-    setQuantity(prev => Math.max(1, prev - 1));
-  };
-
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200">
       <div className="relative overflow-hidden">
@@ -72,16 +55,6 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
             <span className="text-sm text-gray-600 ml-1">{book.rating}</span>
           </div>
         </div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-600">
-            Available: <span className="font-medium text-gray-800">{book.availableQuantity} copies</span>
-          </span>
-          {book.availableQuantity <= 5 && book.availableQuantity > 0 && (
-            <Badge variant="outline" className="text-orange-600 border-orange-600">
-              Low Stock
-            </Badge>
-          )}
-        </div>
         <p className="text-gray-600 text-sm line-clamp-3">{book.description}</p>
       </CardContent>
       
@@ -93,52 +66,13 @@ const BookCard = ({ book, onAddToCart, onViewDetails }: BookCardProps) => {
         >
           View Details
         </Button>
-        
-        {book.inStock && book.availableQuantity > 0 && (
-          <div className="flex items-center space-x-2 w-full">
-            <div className="flex items-center border rounded-md">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={decrementQuantity}
-                className="h-8 w-8 p-0"
-              >
-                -
-              </Button>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => handleQuantityChange(e.target.value)}
-                className="w-16 h-8 text-center border-0 px-2"
-                min="1"
-                max={book.availableQuantity}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={incrementQuantity}
-                className="h-8 w-8 p-0"
-              >
-                +
-              </Button>
-            </div>
-            <Button
-              onClick={() => onAddToCart(book, quantity)}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              Add to Cart
-            </Button>
-          </div>
-        )}
-        
-        {(!book.inStock || book.availableQuantity === 0) && (
-          <Button
-            disabled
-            className="w-full bg-gray-400 text-white cursor-not-allowed"
-          >
-            Out of Stock
-          </Button>
-        )}
+        <Button
+          onClick={() => onAddToCart(book)}
+          disabled={!book.inStock}
+          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          {book.inStock ? 'Add to Cart' : 'Out of Stock'}
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -1,0 +1,91 @@
+
+[
+  {
+    "id": "1",
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "price": 12.99,
+    "category": "Fiction",
+    "cover": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop",
+    "description": "A classic American novel about the Jazz Age and the American Dream.",
+    "rating": 4.5,
+    "inStock": true
+  },
+  {
+    "id": "2",
+    "title": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "price": 14.99,
+    "category": "Fiction",
+    "cover": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop",
+    "description": "A powerful story of racial injustice and childhood innocence.",
+    "rating": 4.8,
+    "inStock": true
+  },
+  {
+    "id": "3",
+    "title": "1984",
+    "author": "George Orwell",
+    "price": 13.99,
+    "category": "Science Fiction",
+    "cover": "https://images.unsplash.com/photo-1495640388908-05fa85288e61?w=300&h=400&fit=crop",
+    "description": "A dystopian social science fiction novel about totalitarian control.",
+    "rating": 4.7,
+    "inStock": true
+  },
+  {
+    "id": "4",
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "price": 11.99,
+    "category": "Romance",
+    "cover": "https://images.unsplash.com/photo-1518373714866-3f1478910cc0?w=300&h=400&fit=crop",
+    "description": "A romantic novel about manners, upbringing, morality, and marriage.",
+    "rating": 4.6,
+    "inStock": true
+  },
+  {
+    "id": "5",
+    "title": "The Catcher in the Rye",
+    "author": "J.D. Salinger",
+    "price": 13.99,
+    "category": "Fiction",
+    "cover": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
+    "description": "A controversial novel about teenage rebellion and alienation.",
+    "rating": 4.2,
+    "inStock": true
+  },
+  {
+    "id": "6",
+    "title": "Harry Potter and the Sorcerer's Stone",
+    "author": "J.K. Rowling",
+    "price": 15.99,
+    "category": "Fantasy",
+    "cover": "https://images.unsplash.com/photo-1621351183012-e2f9972dd9bf?w=300&h=400&fit=crop",
+    "description": "The first book in the magical Harry Potter series.",
+    "rating": 4.9,
+    "inStock": true
+  },
+  {
+    "id": "7",
+    "title": "The Lord of the Rings",
+    "author": "J.R.R. Tolkien",
+    "price": 19.99,
+    "category": "Fantasy",
+    "cover": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=400&fit=crop",
+    "description": "An epic high fantasy novel set in Middle-earth.",
+    "rating": 4.8,
+    "inStock": true
+  },
+  {
+    "id": "8",
+    "title": "The Hobbit",
+    "author": "J.R.R. Tolkien",
+    "price": 16.99,
+    "category": "Fantasy",
+    "cover": "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=300&h=400&fit=crop",
+    "description": "A fantasy novel about Bilbo Baggins' unexpected journey.",
+    "rating": 4.7,
+    "inStock": true
+  }
+]

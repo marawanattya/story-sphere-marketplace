@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -6,7 +5,7 @@ import HomePage from '@/components/HomePage';
 import BookCard, { Book } from '@/components/BookCard';
 import ShoppingCart, { CartItem } from '@/components/ShoppingCart';
 import AuthModal from '@/components/AuthModal';
-import { mockBooks, mockCategories, mockUsers } from '@/data/mockData';
+import { JSONDatabase } from '@/utils/database';
 
 // Order interface
 interface Order {
@@ -31,50 +30,45 @@ const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [books, setBooks] = useState<Book[]>(mockBooks);
+  const [books, setBooks] = useState<Book[]>([]);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [categories, setCategories] = useState<string[]>(mockCategories);
+  const [categories, setCategories] = useState<string[]>([]);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: '001',
-      customerId: '1',
-      customerName: 'John Doe',
-      customerEmail: 'john@example.com',
-      items: [
-        { book: mockBooks[0], quantity: 1 },
-        { book: mockBooks[1], quantity: 1 }
-      ],
-      total: 45.98,
-      status: 'delivered',
-      createdAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '002',
-      customerId: '2',
-      customerName: 'Jane Smith',
-      customerEmail: 'jane@example.com',
-      items: [
-        { book: mockBooks[2], quantity: 1 }
-      ],
-      total: 24.99,
-      status: 'processing',
-      createdAt: '2024-01-16T14:20:00Z'
-    },
-    {
-      id: '003',
-      customerId: '3',
-      customerName: 'Bob Johnson',
-      customerEmail: 'bob@example.com',
-      items: [
-        { book: mockBooks[3], quantity: 2 }
-      ],
-      total: 59.98,
-      status: 'pending',
-      createdAt: '2024-01-17T09:15:00Z'
-    }
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load data from JSON database on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [booksData, categoriesData, ordersData, usersData] = await Promise.all([
+          JSONDatabase.getBooks(),
+          JSONDatabase.getCategories(),
+          JSONDatabase.getOrders(),
+          JSONDatabase.getUsers()
+        ]);
+        
+        setBooks(booksData);
+        setCategories(categoriesData);
+        setOrders(ordersData);
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: "Error loading data",
+          description: "There was an error loading the application data",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [toast]);
 
   // Filter books based on search and category
   const filteredBooks = books.filter(book => {
@@ -89,8 +83,8 @@ const Index = () => {
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Authentication handlers
-  const handleLogin = (email: string, password: string) => {
-    const user = mockUsers.find(u => u.email === email && u.password === password);
+  const handleLogin = async (email: string, password: string) => {
+    const user = users.find(u => u.email === email && u.password === password);
     if (user) {
       setIsLoggedIn(true);
       setCurrentUser(user);
@@ -108,27 +102,37 @@ const Index = () => {
     }
   };
 
-  const handleRegister = (email: string, password: string, name: string) => {
-    // In a real app, this would create a new user
+  const handleRegister = async (email: string, password: string, name: string) => {
     const newUser = {
-      id: String(mockUsers.length + 1),
+      id: String(users.length + 1),
       email,
       password,
       name,
       role: 'user'
     };
-    mockUsers.push(newUser);
-    setIsLoggedIn(true);
-    setCurrentUser(newUser);
-    setShowAuthModal(false);
-    toast({
-      title: "Account created!",
-      description: `Welcome ${name}! Please check your email for verification.`,
-    });
+    
+    try {
+      await JSONDatabase.addUser(newUser);
+      const updatedUsers = await JSONDatabase.getUsers();
+      setUsers(updatedUsers);
+      
+      setIsLoggedIn(true);
+      setCurrentUser(newUser);
+      setShowAuthModal(false);
+      toast({
+        title: "Account created!",
+        description: `Welcome ${name}! Please check your email for verification.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Registration failed",
+        description: "There was an error creating your account",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGoogleAuth = () => {
-    // Mock Google authentication
     toast({
       title: "Google Auth",
       description: "Google authentication would be implemented with a real auth service",
@@ -187,7 +191,7 @@ const Index = () => {
     });
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!isLoggedIn || !currentUser) {
       toast({
         title: "Please log in",
@@ -199,7 +203,6 @@ const Index = () => {
 
     const total = cartItems.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
     
-    // Create new order
     const newOrder: Order = {
       id: String(orders.length + 1).padStart(3, '0'),
       customerId: currentUser.id,
@@ -211,15 +214,24 @@ const Index = () => {
       createdAt: new Date().toISOString()
     };
 
-    // Add order to orders list
-    setOrders(prevOrders => [newOrder, ...prevOrders]);
+    try {
+      await JSONDatabase.addOrder(newOrder);
+      const updatedOrders = await JSONDatabase.getOrders();
+      setOrders(updatedOrders);
 
-    toast({
-      title: "Order placed!",
-      description: `Thank you for your order! Order #${newOrder.id} - Total: $${total.toFixed(2)}`,
-    });
-    
-    setCartItems([]);
+      toast({
+        title: "Order placed!",
+        description: `Thank you for your order! Order #${newOrder.id} - Total: $${total.toFixed(2)}`,
+      });
+      
+      setCartItems([]);
+    } catch (error) {
+      toast({
+        title: "Checkout failed",
+        description: "There was an error processing your order",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewDetails = (book: Book) => {
@@ -271,17 +283,29 @@ const Index = () => {
     });
   };
 
-  const handleAddBook = (newBook: Omit<Book, 'id'>) => {
+  const handleAddBook = async (newBook: Omit<Book, 'id'>) => {
     const book: Book = {
       ...newBook,
       id: String(books.length + 1)
     };
-    setBooks(prevBooks => [...prevBooks, book]);
-    toast({
-      title: "Book added successfully!",
-      description: `${book.title} has been added to the catalog`,
-    });
-    setCurrentView('admin');
+    
+    try {
+      await JSONDatabase.addBook(book);
+      const updatedBooks = await JSONDatabase.getBooks();
+      setBooks(updatedBooks);
+      
+      toast({
+        title: "Book added successfully!",
+        description: `${book.title} has been added to the catalog`,
+      });
+      setCurrentView('admin');
+    } catch (error) {
+      toast({
+        title: "Error adding book",
+        description: "There was an error adding the book",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditBook = (bookId: string) => {
@@ -291,30 +315,49 @@ const Index = () => {
     }
   };
 
-  const handleUpdateBook = (updatedBook: Book) => {
-    setBooks(prevBooks => 
-      prevBooks.map(book => 
-        book.id === updatedBook.id ? updatedBook : book
-      )
-    );
-    setEditingBook(null);
-    toast({
-      title: "Book updated successfully!",
-      description: `${updatedBook.title} has been updated`,
-    });
+  const handleUpdateBook = async (updatedBook: Book) => {
+    try {
+      await JSONDatabase.updateBook(updatedBook);
+      const updatedBooks = await JSONDatabase.getBooks();
+      setBooks(updatedBooks);
+      
+      setEditingBook(null);
+      toast({
+        title: "Book updated successfully!",
+        description: `${updatedBook.title} has been updated`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating book",
+        description: "There was an error updating the book",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteBook = (bookId: string) => {
+  const handleDeleteBook = async (bookId: string) => {
     const book = books.find(b => b.id === bookId);
-    setBooks(prevBooks => prevBooks.filter(book => book.id !== bookId));
-    toast({
-      title: "Book deleted",
-      description: `${book?.title} has been removed from the catalog`,
-    });
+    
+    try {
+      await JSONDatabase.deleteBook(bookId);
+      const updatedBooks = await JSONDatabase.getBooks();
+      setBooks(updatedBooks);
+      
+      toast({
+        title: "Book deleted",
+        description: `${book?.title} has been removed from the catalog`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting book",
+        description: "There was an error deleting the book",
+        variant: "destructive"
+      });
+    }
   };
 
   // Category management handlers
-  const handleAddCategory = (categoryName: string) => {
+  const handleAddCategory = async (categoryName: string) => {
     if (categories.includes(categoryName)) {
       toast({
         title: "Category already exists",
@@ -323,14 +366,26 @@ const Index = () => {
       });
       return;
     }
-    setCategories(prev => [...prev, categoryName]);
-    toast({
-      title: "Category added",
-      description: `${categoryName} has been added to categories`,
-    });
+    
+    try {
+      await JSONDatabase.addCategory(categoryName);
+      const updatedCategories = await JSONDatabase.getCategories();
+      setCategories(updatedCategories);
+      
+      toast({
+        title: "Category added",
+        description: `${categoryName} has been added to categories`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error adding category",
+        description: "There was an error adding the category",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleEditCategory = (oldName: string, newName: string) => {
+  const handleEditCategory = async (oldName: string, newName: string) => {
     if (categories.includes(newName) && newName !== oldName) {
       toast({
         title: "Category already exists",
@@ -340,20 +395,31 @@ const Index = () => {
       return;
     }
     
-    setCategories(prev => prev.map(cat => cat === oldName ? newName : cat));
-    setBooks(prevBooks => 
-      prevBooks.map(book => 
-        book.category === oldName ? { ...book, category: newName } : book
-      )
-    );
-    setEditingCategory(null);
-    toast({
-      title: "Category updated",
-      description: `Category has been renamed to ${newName}`,
-    });
+    try {
+      await JSONDatabase.updateCategory(oldName, newName);
+      const [updatedCategories, updatedBooks] = await Promise.all([
+        JSONDatabase.getCategories(),
+        JSONDatabase.getBooks()
+      ]);
+      
+      setCategories(updatedCategories);
+      setBooks(updatedBooks);
+      setEditingCategory(null);
+      
+      toast({
+        title: "Category updated",
+        description: `Category has been renamed to ${newName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating category",
+        description: "There was an error updating the category",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteCategory = (categoryName: string) => {
+  const handleDeleteCategory = async (categoryName: string) => {
     const booksInCategory = books.filter(book => book.category === categoryName);
     if (booksInCategory.length > 0) {
       toast({
@@ -364,29 +430,58 @@ const Index = () => {
       return;
     }
     
-    setCategories(prev => prev.filter(cat => cat !== categoryName));
-    toast({
-      title: "Category deleted",
-      description: `${categoryName} has been removed from categories`,
-    });
+    try {
+      await JSONDatabase.deleteCategory(categoryName);
+      const updatedCategories = await JSONDatabase.getCategories();
+      setCategories(updatedCategories);
+      
+      toast({
+        title: "Category deleted",
+        description: `${categoryName} has been removed from categories`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting category",
+        description: "There was an error deleting the category",
+        variant: "destructive"
+      });
+    }
   };
 
   // Order management handlers
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    setOrders(prev => 
-      prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-    toast({
-      title: "Order status updated",
-      description: `Order #${orderId} status updated to ${newStatus}`,
-    });
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      await JSONDatabase.updateOrderStatus(orderId, newStatus);
+      const updatedOrders = await JSONDatabase.getOrders();
+      setOrders(updatedOrders);
+      
+      toast({
+        title: "Order status updated",
+        description: `Order #${orderId} status updated to ${newStatus}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating order",
+        description: "There was an error updating the order status",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading application data...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Render different views
   const renderCurrentView = () => {
@@ -1058,7 +1153,7 @@ const Index = () => {
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-xl font-semibold mb-4">Total Users</h3>
-                  <p className="text-3xl font-bold text-amber-600">{mockUsers.length}</p>
+                  <p className="text-3xl font-bold text-amber-600">{users.length}</p>
                 </div>
               </div>
               

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -187,11 +188,37 @@ const Index = () => {
   };
 
   const handleCheckout = () => {
-    // Mock checkout process
+    if (!isLoggedIn || !currentUser) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to complete checkout",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const total = cartItems.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
+    
+    // Create new order
+    const newOrder: Order = {
+      id: String(orders.length + 1).padStart(3, '0'),
+      customerId: currentUser.id,
+      customerName: currentUser.name,
+      customerEmail: currentUser.email,
+      items: [...cartItems],
+      total: total,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    // Add order to orders list
+    setOrders(prevOrders => [newOrder, ...prevOrders]);
+
     toast({
       title: "Order placed!",
-      description: `Thank you for your order! Total: $${cartItems.reduce((sum, item) => sum + (item.book.price * item.quantity), 0).toFixed(2)}`,
+      description: `Thank you for your order! Order #${newOrder.id} - Total: $${total.toFixed(2)}`,
     });
+    
     setCartItems([]);
   };
 
